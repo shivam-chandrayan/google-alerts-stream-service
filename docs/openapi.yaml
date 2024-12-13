@@ -1,0 +1,200 @@
+openapi: 3.0.0
+info:
+  title: RSS Feed API
+  version: 1.0.0
+  description: API for managing RSS feeds and entries
+
+servers:
+  - url: http://localhost:8000/api/v1
+
+paths:
+  /feeds/:
+    post:
+      summary: Create new feed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: "https://www.google.com/alerts/feeds/05438962104974075464/1030448771077491967"
+                keyword:
+                  type: string
+                  example: "ai tools"
+                name:
+                  type: string
+                  example: "AI Tools Alert"
+      responses:
+        "201":
+          description: Feed created successfully
+
+    get:
+      summary: Get all feeds
+      responses:
+        "200":
+          description: List of all feeds
+
+  /feeds/{feed_id}:
+    parameters:
+      - name: feed_id
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      summary: Get feed by ID
+      responses:
+        "200":
+          description: Feed details
+
+    put:
+      summary: Update feed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                keyword:
+                  type: string
+                name:
+                  type: string
+      responses:
+        "200":
+          description: Feed updated successfully
+
+    delete:
+      summary: Delete feed
+      responses:
+        "200":
+          description: Feed deleted successfully
+
+  /feeds/{feed_id}/refresh:
+    post:
+      summary: Refresh specific feed
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feed refresh initiated
+
+  /feeds/refresh-all:
+    post:
+      summary: Refresh all feeds
+      responses:
+        "200":
+          description: All feeds refresh initiated
+
+  /entries/:
+    get:
+      summary: Get all entries
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: keywords
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: List of entries
+
+  /feeds/{feed_id}/entries:
+    get:
+      summary: Get entries for specific feed
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of feed entries
+
+  /feeds/{feed_id}/stats:
+    get:
+      summary: Get feed statistics
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feed statistics
+
+components:
+  schemas:
+    Feed:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          format: uri
+        keyword:
+          type: string
+        name:
+          type: string
+        last_fetched:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    Entry:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        link:
+          type: string
+          format: uri
+        published_at:
+          type: string
+          format: date-time
+        feed_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
