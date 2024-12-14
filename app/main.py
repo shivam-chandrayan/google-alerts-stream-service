@@ -5,6 +5,7 @@ from app.api.routes import router
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -13,6 +14,14 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=get_settings().PROJECT_NAME,
     openapi_url=f"{get_settings().API_V1_STR}/openapi.json"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include routers

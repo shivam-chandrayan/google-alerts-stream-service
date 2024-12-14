@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -15,6 +15,9 @@ class Entry(Base):
     updated_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     feed_id = Column(String(36), ForeignKey("feeds.id"), nullable=False)
+    publisher = Column(String, nullable=True)
+    is_read = Column(Boolean, default=False)
+    is_bookmarked = Column(Boolean, default=False)
 
     # Relationship with feed
     feed = relationship("Feed", back_populates="entries")

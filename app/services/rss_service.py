@@ -1,6 +1,6 @@
 import feedparser
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 from app.schemas.entry import EntryCreate
 from app.schemas.feed import FeedUpdate
 from app.services.entry_service import EntryService
@@ -9,6 +9,7 @@ from fastapi import HTTPException
 import pytz
 from dateutil import parser
 import logging
+from urllib.parse import urlparse, parse_qsl
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,27 @@ class RSSService:
         self.entry_service = EntryService(db_session)
         self.feed_service = FeedService(db_session)
         self.db = db_session
+
+    def extract_publisher(self, url: str) -> Optional[str]:
+        try:
+            # Parse the main URL and extract the query parameter 'url'
+            parsed_url = urlparse(url)
+            query_dict = dict(parse_qsl(parsed_url.query))
+            
+            # Get the target URL from the 'url' parameter
+            if 'url' in query_dict:
+                nested_url = query_dict['url']
+                nested_parsed = urlparse(nested_url)
+                # Extract the domain (netloc)
+                domain = nested_parsed.netloc
+                # Remove subdomains like 'www' and return the base domain
+                parts = domain.split('.')
+                if len(parts) >= 2:
+                    return ".".join(parts[-2:])
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to extract publisher from URL {url}: {str(e)}")
+            return None
 
     def parse_date(self, date_str: str) -> datetime:
         """Convert various date formats to UTC datetime"""
@@ -74,6 +96,9 @@ class RSSService:
                     published_at = self.parse_date(published) if published else datetime.now(pytz.UTC)
                     updated_at = self.parse_date(updated) if updated else published_at
                     
+                    # Parse publisher
+                    publisher = self.extract_publisher(link)
+                    
                     # Create entry object
                     entry = EntryCreate(
                         title=title,
@@ -82,7 +107,10 @@ class RSSService:
                         published_at=published_at,
                         updated_at=updated_at,
                         feed_id=feed.id,
-                        entry_id=entry_id
+                        entry_id=entry_id,
+                        publisher=publisher,
+                        is_read=False,
+                        is_bookmarked=False
                     )
                     
                     # Log successful entry creation

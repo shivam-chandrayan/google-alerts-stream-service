@@ -4,6 +4,7 @@ from app.schemas.feed import FeedCreate, FeedUpdate
 from fastapi import HTTPException
 from typing import List
 import logging
+from sqlalchemy.sql import or_
 
 class FeedService:
     def __init__(self, db: Session):

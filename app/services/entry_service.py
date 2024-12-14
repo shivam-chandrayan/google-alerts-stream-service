@@ -1,10 +1,13 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.models.entry import Entry
-from app.schemas.entry import EntryCreate
+from app.schemas.entry import EntryCreate, EntryStatus
 from fastapi import HTTPException
 from typing import List, Optional
 from datetime import datetime
+from app.models.feed import Feed
+from sqlalchemy import or_
+import logging
 
 class EntryService:
     def __init__(self, db: Session):
@@ -30,7 +33,7 @@ class EntryService:
     def get_entries(
         self,
         skip: int = 0,
-        limit: int = 50,
+        limit: int = 10,
         keywords: Optional[List[str]] = None
     ) -> List[Entry]:
         """
@@ -39,20 +42,19 @@ class EntryService:
         """
         query = self.db.query(Entry)
 
-        # Join with Feed table if we need to filter by keywords
         if keywords:
-            from app.models.feed import Feed
             query = query.join(Feed)
-            # Filter entries whose feed keyword matches any of the provided keywords
-            from sqlalchemy import or_
             keyword_filters = [Feed.keyword.ilike(f"%{keyword}%") for keyword in keywords]
             query = query.filter(or_(*keyword_filters))
 
-        # Order by published date, newest first
+        total_count = query.count()
         query = query.order_by(desc(Entry.published_at))
+        entries = query.offset(skip).limit(limit).all()
 
-        # Apply pagination
-        return query.offset(skip).limit(limit).all()
+        return {
+            "entries": entries,
+            "total_count": total_count
+        }
 
     def get_entry(self, entry_id: str) -> Entry:
         """Get a specific entry by ID"""
@@ -60,6 +62,38 @@ class EntryService:
         if not entry:
             raise HTTPException(status_code=404, detail="Entry not found")
         return entry
+
+    def get_bookmarked_entries(
+        self,
+        skip: int = 0,
+        limit: int = 10,
+        keywords: Optional[List[str]] = None
+    ) -> List[Entry]:
+        """
+        Get bookmarked entries with optional keyword filtering
+        Returns newest entries first
+        """
+        query = self.db.query(Entry)
+
+        # Filter for bookmarked entries
+        query = query.filter(Entry.is_bookmarked == True)
+
+        if keywords:
+            query = query.join(Feed)
+            keyword_filters = [Feed.keyword.ilike(f"%{keyword}%") for keyword in keywords]
+            query = query.filter(or_(*keyword_filters))
+
+        total_count = query.count()
+        query = query.order_by(desc(Entry.published_at))
+        entries = query.offset(skip).limit(limit).all()
+
+        logging.info(f"bookmarked entries: {entries}")
+
+        return {
+            "entries": entries,
+            "total_count": total_count
+        }
+
 
     def create_entries_batch(self, entries: List[EntryCreate]) -> List[Entry]:
         """Create multiple entries at once, skipping existing ones"""
@@ -89,7 +123,7 @@ class EntryService:
         self,
         feed_id: str,
         skip: int = 0,
-        limit: int = 50
+        limit: int = 10
     ) -> List[Entry]:
         """Get entries for a specific feed"""
         return self.db.query(Entry)\
@@ -105,3 +139,12 @@ class EntryService:
         if feed_id:
             query = query.filter(Entry.feed_id == feed_id)
         return query.count()
+    
+    def update_entry_status(self, entry_id: str, status: EntryStatus) -> Entry:
+        """Update the status of an entry"""
+        entry = self.get_entry(entry_id)
+        logging.info(f"Updating entry status: {entry_id} - {status}")
+        entry.is_read = status.read
+        entry.is_bookmarked = status.bookmarked
+        self.db.commit()
+        return entry

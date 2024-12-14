@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.db.base import get_db
 from app.schemas.feed import FeedCreate, Feed, FeedUpdate
-from app.schemas.entry import Entry
+from app.schemas.entry import Entry, PaginatedEntriesResponse, EntryStatus
 from app.services.health_service import HealthService
 from app.services.feed_service import FeedService
 from app.services.entry_service import EntryService
@@ -98,15 +98,6 @@ def get_feeds(db: Session = Depends(get_db)):
     try:
         feed_service = FeedService(db)
         feeds = feed_service.get_feeds()
-        logger.debug(f"Raw feeds data: {[{
-            'id': f.id,
-            'url': f.url,
-            'keyword': f.keyword,
-            'name': f.name,
-            'last_fetched': f.last_fetched,
-            'created_at': f.created_at
-        } for f in feeds]}")
-        
         if not feeds:
             logger.info("No feeds found in database")
             return []
@@ -174,18 +165,12 @@ def delete_feed(feed_id: str, db: Session = Depends(get_db)):
             detail=f"Internal server error while deleting feed: {str(e)}"
         )
 
-# @router.get("/feeds/{feed_id}/stats", response_model=FeedStats)
-# def get_feed_stats(feed_id: str, db: Session = Depends(get_db)):
-#     """Get statistics for a specific feed"""
-#     feed_service = FeedService(db)
-#     return feed_service.get_feed_stats(feed_id)
-
 # Entry routes
-@router.get("/entries/", response_model=List[Entry])
+@router.get("/entries/", response_model=PaginatedEntriesResponse)
 def get_entries(
-    skip: int = 0,
-    limit: int = 50,
-    keywords: Optional[List[str]] = None,
+    limit: int = Query(10, description="Number of items to fetch"),
+    skip: int = Query(0, description="Number of items to skip"),
+    keywords: List[str] = Query(None, description="List of keywords to filter feeds"),
     db: Session = Depends(get_db)
 ):
     """Get all entries with optional keyword filtering"""
@@ -199,6 +184,34 @@ def get_entries(
         if entries and logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Sample entry: {entries[0].__dict__}")
             
+        return entries
+    except Exception as e:
+        logger.exception(f"Error fetching entries: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error while fetching entries: {str(e)}"
+        )
+
+@router.put("/entries/{entry_id}/status", response_model=Entry)
+def update_entry_status(entry_id: str, status: EntryStatus, db: Session = Depends(get_db)):
+    """Update the status of an entry"""
+    entry_service = EntryService(db)
+    return entry_service.update_entry_status(entry_id, status)
+
+@router.get("/entries/bookmarked", response_model=PaginatedEntriesResponse)
+def get_bookmarked_entries(
+    limit: int = Query(10, description="Number of items to fetch"),
+    skip: int = Query(0, description="Number of items to skip"),
+    keywords: List[str] = Query(None, description="List of keywords to filter feeds"),
+    db: Session = Depends(get_db)
+):
+    """Get all bookmarked entries with optional keyword filtering"""
+    logger.info(f"Fetching bookmarked entries with skip={skip}, limit={limit}, keywords={keywords}")
+    try:
+        entry_service = EntryService(db)
+        entries = entry_service.get_bookmarked_entries(skip=skip, limit=limit, keywords=keywords)
+        logger.debug(f"Retrieved {len(entries)} entries")
+
         return entries
     except Exception as e:
         logger.exception(f"Error fetching entries: {str(e)}")
