@@ -1,0 +1,258 @@
+openapi: 3.0.0
+info:
+  title: RSS Feed API
+  version: 1.0.0
+  description: API for managing RSS feeds and entries
+
+servers:
+  - url: http://localhost:8000/api/v1
+
+paths:
+  /health:
+    get:
+      summary: Check the health of all services
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Health check successful
+        "500":
+          description: Health check failed
+  /feeds/:
+    get:
+      summary: Get all feeds
+      operationId: getFeeds
+      responses:
+        "200":
+          description: A list of feeds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Feed"
+        "500":
+          description: Internal server error
+    post:
+      summary: Create a new feed and fetch its entries in the background
+      operationId: createFeed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedCreate"
+      responses:
+        "201":
+          description: Feed created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feed"
+        "400":
+          description: Invalid RSS feed URL
+        "500":
+          description: Internal server error
+  /feeds/{feed_id}:
+    get:
+      summary: Get a specific feed
+      operationId: getFeed
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feed details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feed"
+        "404":
+          description: Feed not found
+    put:
+      summary: Update a feed
+      operationId: updateFeed
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedUpdate"
+      responses:
+        "200":
+          description: Feed updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Feed"
+        "404":
+          description: Feed not found
+    delete:
+      summary: Delete a feed and its associated entries
+      operationId: deleteFeed
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feed deleted successfully
+        "404":
+          description: Feed not found
+  /feeds/{feed_id}/entries:
+    get:
+      summary: Get entries for a specific feed
+      operationId: getFeedEntries
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: skip
+          in: query
+          schema:
+            type: integer
+          default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          default: 50
+      responses:
+        "200":
+          description: List of entries for the feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entry"
+  /feeds/{feed_id}/refresh:
+    post:
+      summary: Manually trigger a feed refresh
+      operationId: refreshFeed
+      parameters:
+        - name: feed_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feed refresh scheduled
+  /feeds/refresh-all:
+    post:
+      summary: Refresh all feeds
+      operationId: refreshAllFeeds
+      responses:
+        "200":
+          description: All feeds refresh scheduled
+  /entries/:
+    get:
+      summary: Get all entries with optional keyword filtering
+      operationId: getEntries
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+          default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          default: 10
+        - name: keywords
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Paginated list of entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedEntriesResponse"
+  /entries/{entry_id}/status:
+    post:
+      summary: Update the status of an entry
+      operationId: updateEntryStatus
+      parameters:
+        - name: entry_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntryStatus"
+      responses:
+        "200":
+          description: Entry status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+components:
+  schemas:
+    Feed:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    FeedCreate:
+      type: object
+      properties:
+        url:
+          type: string
+    FeedUpdate:
+      type: object
+      properties:
+        url:
+          type: string
+    Entry:
+      type: object
+      properties:
+        id:
+          type: string
+        feed_id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+    PaginatedEntriesResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Entry"
+        total:
+          type: integer
+    EntryStatus:
+      type: object
+      properties:
+        status:
+          type: string
