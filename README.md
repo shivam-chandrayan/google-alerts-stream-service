@@ -11,7 +11,7 @@ A backend service built using **FastAPI**, designed to handle RESTful API for Go
 FastAPI provides auto-generated interactive API documentation:
 
 - **Swagger UI**:  
-  Access at [/doc](https://google-alerts-stream-service.onrender.com/docs"/doc")
+  Access at [/doc](https://google-alerts-stream-service.onrender.com/docs "/doc")
 
 - **ReDoc**:  
   Access at [/redoc](https://google-alerts-stream-service.onrender.com/redoc "/redoc")
