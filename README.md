@@ -1,9 +1,10 @@
-# **MegaFeed**
+# **MegaFeed API Service**
 
-A frontend application built with **Vite**, **React**, and **TypeScript**.
-Add multiple Google Alerts RSS Feed and see all alerts in one place.
+A backend service built using **FastAPI**, designed to handle RESTful API for Google Alerts RSS Feed.
 
-[Demo Link](https://google-alerts-stream-web-git-50c1d8-shivam-chandrayans-projects.vercel.app/ "Demo Link")
+[demo link](https://google-alerts-stream-service.onrender.com "demo link")
+
+---
 
 ## **Features**
 - Manage multiple RSS feeds easily
@@ -16,8 +17,9 @@ Add multiple Google Alerts RSS Feed and see all alerts in one place.
 
 ### **Prerequisites**
 Ensure you have the following installed on your machine:
-- **Node.js** (version 16 or later)
-- **npm** or **yarn**
+- **Python** (version 3.9 or later)
+- **pip** (Python package manager)
+- **virtualenv** (optional but recommended)
 
 ---
 
@@ -29,11 +31,15 @@ Ensure you have the following installed on your machine:
    cd google-alerts-stream-service
    ```
 
-2. Install dependencies:
+2. Create and activate a virtual environment (optional but recommended):
    ```bash
-   npm install
-   # or
-   yarn install
+   python -m venv env
+   source env/bin/activate  # On Windows: .\env\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
    ```
 
 ---
@@ -42,43 +48,30 @@ Ensure you have the following installed on your machine:
 
 To start the development server:
 ```bash
-npm run dev
-# or
-yarn dev
+uvicorn app.main:app --reload
 ```
 ---
 
-### **Building the Application**
+## **API Documentation**
 
-To build the app for production:
-```bash
-npm run build
-# or
-yarn build
-```
+FastAPI provides auto-generated interactive API documentation:
 
-The build output will be available in the `dist/` directory.
+- **Swagger UI**:  
+  Access at [/doc](https://google-alerts-stream-service.onrender.com/docs"/doc")
 
----
-
-### **Environment Variables**
-
-This project uses environment variables for configuration. Ensure the following variables are defined in a `.env` file:
-```env
-VITE_API_BASE_URL=https://your-api-base-url.com
-```
-
+- **ReDoc**:  
+  Access at [/redoc](https://google-alerts-stream-service.onrender.com/redoc "/redoc")
 ---
 
 ## **Deployment**
 
-This project can be deployed to any static hosting provider (e.g., Vercel, Netlify).
+This service can be deployed using platforms like **Render**, **Heroku**, or **AWS**.
 
-Example deployment on Vercel:
+### Example Deployment on Render:
 1. Push your code to a GitHub repository.
-2. Link the repo to your Vercel account.
-3. Set the environment variables in the Vercel dashboard.
-4. Deploy!
+2. Link the repo to your Render account.
+3. Set the environment variables in the Render dashboard.
+4. Deploy using a Gunicorn or Uvicorn worker.
 
 ---
 
